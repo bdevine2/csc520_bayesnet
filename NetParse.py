@@ -21,8 +21,8 @@ def main():
 
     query = open(args.QueryFile, "r")
     results = bayes_net.query_truth(query.readline())
-    print(f'Results {results}')
-    print(f'{bayes_net.print()}')
+
+    #  print(f'{bayes_net.print()}')
 
 
 if __name__ == "__main__":

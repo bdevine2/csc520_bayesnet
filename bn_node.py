@@ -26,9 +26,8 @@ class Node:
 
     def set_prob(self, prob_string):
         parts = prob_string.split()
-        print(f'PARTS: {parts}')
+        # print(f'PARTS: {parts}')
         #  last 1 is always truth only, can hold the f as well per line
-        # TODO we need to key the node to the column of TT as well
         prob = parts[-1]
         truth = parts[-2]
         false_truth = "F" if truth == "T" else "T"
@@ -38,7 +37,7 @@ class Node:
 
         self.Probabilities[true_key] = float(prob)
         self.Probabilities[false_key] = 1.0 - float(prob)
-        print(f'Prob: {prob} - Table: {truth_key}')
+        #  print(f'Prob: {prob} - Table: {truth_key}')
 
     def get_prob(self, parts, parent_truth):
         key = self.get_key(parts, parent_truth)

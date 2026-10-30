@@ -25,7 +25,7 @@ class BayesNet:
                 self.graph.add_node(node.Node, weight=1)  # todo weights? might not need them
                 for parent in node.Parents:
                     self.graph.add_edge(parent, node.Node, weight=1)
-                print(f'Node: - {node.Node}, Parents: = {node.Parents}')
+                #  print(f'Node: - {node.Node}, Parents: = {node.Parents}')
 
             else:
                 # we are not new obj line, we are not a node line,
@@ -33,9 +33,9 @@ class BayesNet:
                 self.Working_Node.set_prob(current_line.raw_line)
 
     def query_truth(self, query):
-        print(f'Querying: {query}')
+        #  print(f'Querying: {query}')
         asking, knowledge = self.parse_query(query)
-        print(f'Asking: {asking}, Knowledge: {knowledge}')
+        #  print(f'Asking: {asking}, Knowledge: {knowledge}')
         d_sep_results = {}
 
         for node_a, node_b in combinations(asking.keys(), 2):
@@ -57,27 +57,26 @@ class BayesNet:
 
         relevant_graph = self.graph.subgraph(relevant_nodes).copy()
 
-        print("Relevant nodes:", list(relevant_graph.nodes))
-        print(f'Hidden: {hidden}')
         totals = {}
         query_nodes = list(asking)
+        # outer is the query variables, inner will be hidden across with evidence
+        # calc prob at each iteration, sum over the hidden values, and cache on the outer row
+        # NOTE: used product because that doesnt violate the spirit of the assignment, it just simplifies combinations
         for outer_values in product(["T", "F"], repeat=len(query_nodes)):
             query_assignment = dict(zip(query_nodes, outer_values))
-            print(f'{query_assignment}')
             row_total = 0.0
             for inner_values in product(["T", "F"], repeat=len(hidden)):
                 hidden_assignment = dict(zip(hidden, inner_values))
-                print(f'{hidden_assignment}')
 
                 assignment = query_assignment | hidden_assignment | knowledge
                 joint = 1.0
 
                 for node in relevant_nodes:
-                    joint *= self.truth_tables[node].get_prob(assignment, assignment.get(node))
+                    joint *= self.truth_tables[node].get_prob(assignment, assignment.get(node))  # collect probs
 
-                row_total += joint
+                row_total += joint  # sum over these
 
-            totals[outer_values] = row_total
+            totals[outer_values] = row_total  # save it
 
             # sum all the rows
         evidence_probability = sum(totals.values())
@@ -85,8 +84,15 @@ class BayesNet:
         # row matching the requested query values
         requested_key = tuple(asking[node] for node in query_nodes)
 
-        #  final math to calc prob
-        return totals[requested_key] / evidence_probability
+        #  final math to calc prob keyed on query vars
+        #  print(f'Response to key: {requested_key}')
+        prob = totals[requested_key] / evidence_probability
+        print(f'Probability of {query} = {prob}')
+        if len(d_sep_results) > 0:
+            print(f'D-sep: {d_sep_results}')
+        else:
+            print(f'No D-sep')
+        return prob
 
         # P(X|e) = alpha P(X, e) = alpha SIGy P(X, e, y) ## where e is evidence(observed values) y is unobserved
         # P(cause|effect) = P(effect|cause)P(cause) / P(effect)
