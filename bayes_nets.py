@@ -1,8 +1,7 @@
 from file_line import FileLine
 import networkx as nx
-from itertools import combinations
+from itertools import combinations, product
 from bn_node import Node
-
 
 VALIDATE = True
 
@@ -39,19 +38,14 @@ class BayesNet:
         print(f'Asking: {asking}, Knowledge: {knowledge}')
         d_sep_results = {}
 
-        # we dont need d-sep with 1 asking variable?? TODO maybe
-        hidden = set(self.graph.nodes) - asking.keys() - knowledge.keys()
-
-        print(f'Hidden: {hidden}')
-
         for node_a, node_b in combinations(asking.keys(), 2):
             d_sep_results[(node_a, node_b)] = self.d_sep(
                 node_a, node_b, set(knowledge.keys())
             )
-            print(f'D-sep results: {d_sep_results} for combination {node_a} and {node_b}')
+            # print(f'D-sep results: {d_sep_results} for combination {node_a} and {node_b}')
             if VALIDATE:
                 expected = nx.is_d_separator(self.graph, {node_a}, {node_b}, set(knowledge.keys()))
-                print(f'networkx is_d_separator results: {expected}')
+                # print(f'networkx is_d_separator results: {expected}')
 
         # we know what we need to know build only the nodes we care about so we can calc our dist
         relevant_nodes = set(asking.keys() | knowledge.keys())
@@ -59,22 +53,40 @@ class BayesNet:
         for node in list(relevant_nodes):
             relevant_nodes.update(nx.ancestors(self.graph, node))
 
+        hidden = relevant_nodes - set(asking.keys()) - set(knowledge.keys())
+
         relevant_graph = self.graph.subgraph(relevant_nodes).copy()
 
         print("Relevant nodes:", list(relevant_graph.nodes))
-        #TODO NEED to know what the loop is to determine what nodes to check against d-sep? all hidden? all questions?
+        print(f'Hidden: {hidden}')
+        totals = {}
+        query_nodes = list(asking)
+        for outer_values in product(["T", "F"], repeat=len(query_nodes)):
+            query_assignment = dict(zip(query_nodes, outer_values))
+            print(f'{query_assignment}')
+            row_total = 0.0
+            for inner_values in product(["T", "F"], repeat=len(hidden)):
+                hidden_assignment = dict(zip(hidden, inner_values))
+                print(f'{hidden_assignment}')
 
-        # TEST
-        # TODO we will need to navigate the reduced grid maybe from here on to get each step
-        # target_test = list(asking.keys())
-        # node = self.truth_tables[target_test[0]]
-        # prob = node.get_prob(knowledge, asking[target_test[0]] == 'F')
+                assignment = query_assignment | hidden_assignment | knowledge
+                joint = 1.0
 
-        node = self.truth_tables['F']
-        prob = node.get_prob({'D': 'T', 'E': 'F'}, 'T')
-        return prob
-        # we can exclude calculations with cond independent variables
-        # we need to account for hidden variables not in the query, each cobination of possible values, summed
+                for node in relevant_nodes:
+                    joint *= self.truth_tables[node].get_prob(assignment, assignment.get(node))
+
+                row_total += joint
+
+            totals[outer_values] = row_total
+
+            # sum all the rows
+        evidence_probability = sum(totals.values())
+
+        # row matching the requested query values
+        requested_key = tuple(asking[node] for node in query_nodes)
+
+        #  final math to calc prob
+        return totals[requested_key] / evidence_probability
 
         # P(X|e) = alpha P(X, e) = alpha SIGy P(X, e, y) ## where e is evidence(observed values) y is unobserved
         # P(cause|effect) = P(effect|cause)P(cause) / P(effect)
@@ -124,7 +136,7 @@ class BayesNet:
         working_graph.remove_nodes_from(evidence)
 
         # if we have no path then we are d-sep because we are blocked on all paths
-        return working_graph, not nx.has_path(working_graph, node_a, node_b)
+        return not nx.has_path(working_graph, node_a, node_b)
         # # now if we remove all evidence and still have a path we are NOT d sep and do not have conditional independednc
         # working_graph.remove_nodes_from(evidence)
         #
