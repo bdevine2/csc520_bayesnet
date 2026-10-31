@@ -36,16 +36,7 @@ class BayesNet:
         #  print(f'Querying: {query}')
         asking, knowledge = self.parse_query(query)
         #  print(f'Asking: {asking}, Knowledge: {knowledge}')
-        d_sep_results = {}
 
-        for node_a, node_b in combinations(asking.keys(), 2):
-            d_sep_results[(node_a, node_b)] = self.d_sep(
-                node_a, node_b, set(knowledge.keys())
-            )
-            # print(f'D-sep results: {d_sep_results} for combination {node_a} and {node_b}')
-            if VALIDATE:
-                expected = nx.is_d_separator(self.graph, {node_a}, {node_b}, set(knowledge.keys()))
-                # print(f'networkx is_d_separator results: {expected}')
 
         # we know what we need to know build only the nodes we care about so we can calc our dist
         relevant_nodes = set(asking.keys() | knowledge.keys())
@@ -56,6 +47,27 @@ class BayesNet:
         hidden = relevant_nodes - set(asking.keys()) - set(knowledge.keys())
 
         relevant_graph = self.graph.subgraph(relevant_nodes).copy()
+
+        d_sep_results = {}
+        ev = set(knowledge.keys())
+        for node_a, node_b in combinations(asking.keys(), 2):  # check query against query
+            d_sep_results[(node_a, node_b)] = self.d_sep(
+                node_a, node_b, ev
+            )
+            # print(f'D-sep results: {d_sep_results} for combination {node_a} and {node_b}')
+            if VALIDATE:
+                expected = nx.is_d_separator(self.graph, {node_a}, {node_b}, set(knowledge.keys()))
+                # print(f'networkx is_d_separator results: {expected}')
+
+        for node in asking.keys():  # Now query against evidence - check ev, and hidden for completeness
+            for e in ev:
+                d_sep_results[(node, e)] = self.d_sep(
+                    node, e, ev - set(e)
+                )
+            for h in hidden:
+                d_sep_results[(node, h)] = self.d_sep(
+                    node, h, ev
+                )
 
         totals = {}
         query_nodes = list(asking)
@@ -86,7 +98,7 @@ class BayesNet:
 
         #  final math to calc prob keyed on query vars
         #  print(f'Response to key: {requested_key}')
-        prob = totals[requested_key] / evidence_probability
+        prob = totals[requested_key] / evidence_probability  #  normalize
         print(f'Probability of {query} = {prob}')
         if len(d_sep_results) > 0:
             print(f'D-sep: {d_sep_results}')
@@ -142,7 +154,15 @@ class BayesNet:
         working_graph.remove_nodes_from(evidence)
 
         # if we have no path then we are d-sep because we are blocked on all paths
-        return not nx.has_path(working_graph, node_a, node_b)
+        dsep = not nx.has_path(working_graph, node_a, node_b)
+
+        if not dsep:
+            # get path info
+            print(f'{node_a} and {node_b} are NOT d-sep given: {evidence}')
+            print(f'Path: {nx.shortest_path(working_graph, node_a, node_b)}')
+        else:
+            print(f'{node_a} and {node_b} are d-sep given: {evidence}')
+        return dsep
         # # now if we remove all evidence and still have a path we are NOT d sep and do not have conditional independednc
         # working_graph.remove_nodes_from(evidence)
         #
