@@ -62,7 +62,7 @@ class BayesNet:
         for node in asking.keys():  # Now query against evidence - check ev, and hidden for completeness
             for e in ev:
                 d_sep_results[(node, e)] = self.d_sep(
-                    node, e, ev - set(e)
+                    node, e, ev - {e}
                 )
             for h in hidden:
                 d_sep_results[(node, h)] = self.d_sep(
@@ -99,7 +99,7 @@ class BayesNet:
         #  final math to calc prob keyed on query vars
         #  print(f'Response to key: {requested_key}')
         prob = totals[requested_key] / evidence_probability  #  normalize
-        print(f'Probability of {query} = {prob}')
+        print(f'Probability of {query} = {prob:6f}')
         if len(d_sep_results) > 0:
             print(f'D-sep: {d_sep_results}')
         else:
