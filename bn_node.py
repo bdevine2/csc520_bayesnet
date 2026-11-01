@@ -36,7 +36,7 @@ class Node:
         false_key = truth_key[:-1] + (false_truth,)
 
         self.Probabilities[true_key] = float(prob)
-        self.Probabilities[false_key] = 1.0 - float(prob)
+        self.Probabilities[false_key] = round(1.0 - float(prob), len(prob))  # for now keep these to 2
         #  print(f'Prob: {prob} - Table: {truth_key}')
 
     def get_prob(self, parts, parent_truth):

@@ -84,7 +84,9 @@ class BayesNet:
                 joint = 1.0
 
                 for node in relevant_nodes:
-                    joint *= self.truth_tables[node].get_prob(assignment, assignment.get(node))  # collect probs
+                    node_prop = self.truth_tables[node].get_prob(assignment, assignment.get(node))
+                    # print(f'{node}: {node_prop} - {assignment}')
+                    joint *= node_prop # collect probs
 
                 row_total += joint  # sum over these
 
@@ -98,20 +100,11 @@ class BayesNet:
 
         #  final math to calc prob keyed on query vars
         #  print(f'Response to key: {requested_key}')
+        # P(cause|effect) = P(effect|cause)P(cause) / P(effect)
         prob = totals[requested_key] / evidence_probability  #  normalize
-        print(f'Probability of {query} = {prob:6f}')
-        if len(d_sep_results) > 0:
-            print(f'D-sep: {d_sep_results}')
-        else:
-            print(f'No D-sep')
+        print(f'Probability of {query} = {float(prob):6f}')
         return prob
 
-        # P(X|e) = alpha P(X, e) = alpha SIGy P(X, e, y) ## where e is evidence(observed values) y is unobserved
-        # P(cause|effect) = P(effect|cause)P(cause) / P(effect)
-        # P(X, Y|Z) = P(X|Z)P(Y|Z)
-        # P(D=T, E=T | A=F, C=T) = P(D=T|A=F,C=T)P(E=T|A=F,C=T) << Book pg 419.... y={B, F} e={A, C}, X = {D, E}
-        # P(D=T|A=F,C=T) = SUM b P(B)P(A=F)P(D=T|A=F,B) * SUM b P(B)P(C=T)P(E=T|B,C=T)
-        # sum b,f P(B)P(A=F)P(C=T)P(D=T|A=F,B)P(E=T|B,C=T) ????does f even matter here?
 
     def parse_query(self, query):
         # need to put these into what we are asking for, and what we know
