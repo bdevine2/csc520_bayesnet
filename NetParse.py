@@ -7,8 +7,8 @@ import argparse
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("TableFile", nargs="?")  # weight model
-    parser.add_argument("QueryFile", nargs="?")  # local file or online
+    parser.add_argument("TableFile", nargs="?")
+    parser.add_argument("QueryFile", nargs="?")
     args = parser.parse_args()
     if args.TableFile is None or args.QueryFile is None:
         print(f'Args are invalid: {args}')

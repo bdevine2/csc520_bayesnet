@@ -3,7 +3,7 @@ import networkx as nx
 from itertools import combinations, product
 from bn_node import Node
 
-VALIDATE = True
+VALIDATE = False
 
 
 class BayesNet:
